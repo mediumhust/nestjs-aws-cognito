@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   AuthenticationDetails,
+  CognitoRefreshToken,
   CognitoUser,
   CognitoUserAttribute,
   CognitoUserPool,
@@ -8,6 +9,8 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { RegisterRequestDto } from './dto/register.request.dto';
 import { AuthenticateRequestDto } from './dto/authenticate.request.dto';
+import { ConfirmRequestDto } from './dto/confirm.request.dto';
+import { RefreshTokenRequestDto } from './dto/refreshToken.request.dto';
 
 @Injectable()
 export class AuthService {
@@ -59,6 +62,56 @@ export class AuthService {
           reject(err);
         },
       });
+    });
+  }
+
+  async confirm(data: ConfirmRequestDto) {
+    const { code, name } = data;
+
+    const userData = {
+      Username: name,
+      Pool: this.userPool,
+    };
+
+    const newUser = new CognitoUser(userData);
+    return new Promise((resolve, reject) => {
+      return newUser.confirmRegistration(code, false, (res) => {
+        console.log(res);
+        resolve(res);
+      });
+    });
+  }
+
+  async resendCode(name: string) {
+    const userData = {
+      Username: name,
+      Pool: this.userPool,
+    };
+
+    const newUser = new CognitoUser(userData);
+    return new Promise((resolve, reject) => {
+      return newUser.resendConfirmationCode((res) => {
+        console.log(res);
+        resolve(res);
+      });
+    });
+  }
+
+  async refreshToken(data: RefreshTokenRequestDto) {
+    const userData = {
+      Username: data.name,
+      Pool: this.userPool,
+    };
+
+    const newUser = new CognitoUser(userData);
+    return new Promise((resolve, reject) => {
+      return newUser.refreshSession(
+        new CognitoRefreshToken({ RefreshToken: data.refreshToken }),
+        (err, session) => {
+          //console.log(session);
+          resolve(session);
+        },
+      );
     });
   }
 }
